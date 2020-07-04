@@ -1,0 +1,66 @@
+tab:
+state     date
+success   01-01
+success   01-02
+success   01-03
+fail      01-04
+fail      01-05
+success   01-06
+
+result:
+state    start   end
+success  01-01   01-03
+fail     01-04   01-05
+success  01-05   01-06
+
+with t as
+(select date, state, rank() over(order by date) ran, rank() over(partition by state order by date) pa_ran
+from tab
+)
+select state, min(date) start_date, max(date) end_date
+from t
+group by state, ran - pa_ran
+order by date
+
+Failed table:
++-------------------+
+| fail_date         |
++-------------------+
+| 2019-01-04        |
+| 2019-01-05        |
++-------------------+
+
+Succeeded table:
++-------------------+
+| success_date      |
++-------------------+
+| 2019-01-01        |
+| 2019-01-02        |
+| 2019-01-03        |
+| 2019-01-06        |
++-------------------+
+
+Result table:
++--------------+--------------+--------------+
+| period_state | start_date   | end_date     |
++--------------+--------------+--------------+
+| succeeded    | 2019-01-01   | 2019-01-03   |
+| failed       | 2019-01-04   | 2019-01-05   |
+| succeeded    | 2019-01-06   | 2019-01-06   |
++--------------+--------------+--------------+
+
+with t1 as (
+select rank() over (order by success_date asc) ran, success_date, (unix_timestamp(success_date) - unix_timestamp('2018-12-31')) / (3600 * 24) dif
+from Succeeded), t2 as (
+select "succeeded" period_state, min(success_date) start_date, max(success_date) end_date
+from t1
+group by ran - dif), t3 as (
+select rank() over (order by fail_date asc) ran, fail_date, (unix_timestamp(fail_date) - unix_timestamp('2018-12-31')) / (3600 * 24) dif
+from Failed), t4 as (
+select "failed" period_state, min(fail_date) start_date, max(fail_date) end_date
+from t3
+group by ran - dif)
+select * from t2
+union all
+select * from t4
+order by start_date
