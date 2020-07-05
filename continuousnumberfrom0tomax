@@ -1,0 +1,31 @@
+Transactions table:
++---------+------------------+--------+
+| user_id | transaction_date | amount |
++---------+------------------+--------+
+| 1       | 2020-01-02       | 120    |
+| 2       | 2020-01-03       | 22     |
+| 7       | 2020-01-11       | 232    |
+| 1       | 2020-01-04       | 7      |
+| 9       | 2020-01-25       | 33     |
+| 9       | 2020-01-25       | 66     |
+| 8       | 2020-01-28       | 1      |
+| 9       | 2020-01-25       | 99     |
++---------+------------------+--------+
+
+t2
+transactions_count    visits_count
+1                     5
+3                     1
+0                     4
+
+
+SELECT (@cnt1 := @cnt1+1) transactions_count
+FROM Transactions CROSS JOIN (SELECT @cnt1 := -1) tmp
+WHERE @cnt1 + 1 <= (SELECT max(transactions_count) from t2)
+union select 0
+
+transactions_count
+0.0
+1.0
+2.0
+3.0
